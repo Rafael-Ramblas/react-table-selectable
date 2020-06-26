@@ -1,159 +1,181 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from 'react'
 
 // Import React Table
-import ReactTable from "react-table";
-import "react-table/react-table.css";
+import ReactTable from 'react-table'
+import 'react-table/react-table.css'
 
 import {
-  selectAll,
-  deselectAll,
-  selectAllValue,
-  deselectAllValue,
-} from "../../features/tableSelectors/selectorSlice";
+    initTable,
+    toggleRow,
+    toggleAll,
+} from '../../features/table/tableSlice'
 
-import { useSelector, useDispatch } from "react-redux";
-
-const TableRow = ({ children, rowInfo, ...props }) => {
-  const [selected, setSelected] = useState(false);
-  const dispatch = useDispatch();
-  const selectedAllHash = useSelector(selectAllValue);
-  const deselectedAllHash = useSelector(deselectAllValue);
-
-  const handleToggleAll = () =>
-    dispatch(selected ? deselectAll() : selectAll());
-
-  useEffect(() => {
-    selectedAllHash && setSelected(true);
-  }, [selectedAllHash]);
-
-  useEffect(() => {
-    deselectedAllHash && setSelected(false);
-  }, [deselectedAllHash]);
-
-  return rowInfo ? (
-    <ReactTable.defaultProps.TrComponent
-      style={{ background: selected ? "red" : "white" }}
-    >
-      {[]
-        .concat(
-          <button onClick={() => setSelected(!selected)}>SELECT ROW</button>
-        )
-        .concat(children)}
-    </ReactTable.defaultProps.TrComponent>
-  ) : (
-    <ReactTable.defaultProps.TrComponent>
-      {[]
-        .concat(<button onClick={handleToggleAll}>SELECT ALL</button>)
-        .concat(children)}
-    </ReactTable.defaultProps.TrComponent>
-  );
-};
+import { useDispatch } from 'react-redux'
+import TableRowRedux from './components/TableRowRedux'
 
 const Table = ({ data }) => {
-  const renderCount = useRef(0);
-  renderCount.current++;
+    const dispatch = useDispatch()
+    const renderCount = useRef(0)
+    renderCount.current++
 
-  return (
-    <div>
-      Render: {renderCount.current}
-      <ReactTable
-        getTrProps={(state, rowInfo, column) => {
-          return {
-            rowInfo,
-          };
-        }}
-        data={data}
-        columns={[
-          {
-            Header: "First Name",
-            accessor: "firstName",
-          },
-          {
-            Header: "Age",
-            accessor: "age",
-          },
-          {
-            Header: "Status",
-            accessor: "status",
-          },
+    useEffect(() => {
+        dispatch(
+            initTable({
+                selectedRows: data.reduce(
+                    (carry, row) => ({ ...carry, [row.id]: false }),
+                    {}
+                ),
+                tableName: 'testTable',
+            })
+        )
+    }, [data, dispatch])
 
-          {
-            Header: "Visits",
-            accessor: "visits",
-          },
-        ]}
-        defaultPageSize={500}
-        TrComponent={TableRow}
-      />
-    </div>
-  );
-};
+    return (
+        <div>
+            Render: {renderCount.current}
+            <ReactTable
+                getTrProps={(state, rowInfo, column) => {
+                    return {
+                        rowInfo,
+                        tableName: 'testTable',
+                    }
+                }}
+                data={data}
+                columns={[
+                    {
+                        Header: (
+                            <button
+                                onClick={() =>
+                                    dispatch(
+                                        toggleAll({ tableName: 'testTable' })
+                                    )
+                                }
+                            >
+                                SELECT ALL
+                            </button>
+                        ),
+                        accessor: (row) => (
+                            <button
+                                onClick={() =>
+                                    dispatch(
+                                        toggleRow({
+                                            id: row.id,
+                                            tableName: 'testTable',
+                                        })
+                                    )
+                                }
+                            >
+                                SELECT ROW
+                            </button>
+                        ),
+                        id: 'select',
+                        sortable: false,
+                    },
+                    {
+                        Header: 'First Name',
+                        accessor: 'firstName',
+                    },
+                    {
+                        Header: 'Age',
+                        accessor: 'age',
+                    },
+                    {
+                        Header: 'Status',
+                        accessor: 'status',
+                    },
+
+                    {
+                        Header: 'Visits',
+                        accessor: 'visits',
+                    },
+                ]}
+                defaultPageSize={500}
+                TrComponent={TableRowRedux}
+            />
+        </div>
+    )
+}
 
 // const Table = ({ data }) => {
-//   const [selectedRows, setSelectedRows] = useState([]);
-//   const handleSelectAll = () =>
-//     setSelectedRows(data.reduce((carry, row) => carry.concat(row.id), []));
-//   const handleDeselectAll = () => setSelectedRows([]);
-//   const onClickSelectAll =
-//     selectedRows.length > 0 ? handleDeselectAll : handleSelectAll;
+//     const [selectedRows, setSelectedRows] = useState([])
+//     const renderCount = useRef(0)
 
-//   const handleSelectRow = (row) => setSelectedRows(selectedRows.concat(row));
-//   const handleDeselectRow = (id) =>
-//     setSelectedRows(selectedRows.filter((selectedRowId) => selectedRowId != id));
+//     const handleSelectAll = () =>
+//         setSelectedRows(data.reduce((carry, row) => carry.concat(row.id), []))
+//     const handleDeselectAll = () => setSelectedRows([])
 
-//   const getTrProps = (state, rowInfo, instance) => {
-//     if (rowInfo) {
-//       return {
-//         style: {
-//           background: selectedRows.includes(rowInfo.original.id) ? "red" : "white",
-//         },
-//       };
+//     const onClickSelectAll =
+//         selectedRows.length > 0 ? handleDeselectAll : handleSelectAll
+
+//     const handleSelectRow = (row) => setSelectedRows(selectedRows.concat(row))
+//     const handleDeselectRow = (id) =>
+//         setSelectedRows(
+//             selectedRows.filter((selectedRowId) => selectedRowId != id)
+//         )
+
+//     const getTrProps = (state, rowInfo, instance) => {
+//         if (rowInfo) {
+//             return {
+//                 style: {
+//                     background: selectedRows.includes(rowInfo.original.id)
+//                         ? 'red'
+//                         : 'white',
+//                 },
+//             }
+//         }
+//         return {}
 //     }
-//     return {};
-//   };
 
-//   return (
-//     <ReactTable
-//       getTrProps={getTrProps}
-//       data={data}
-//       columns={[
-//         {
-//           Header: <button onClick={onClickSelectAll}>SELECT ALL</button>,
-//           accessor: (row) => (
-//             <button
-//               onClick={() =>
-//                 selectedRows.includes(row.id)
-//                   ? handleDeselectRow(row.id)
-//                   : handleSelectRow(row.id)
-//               }
-//             >
-//               SELECT ROW
-//             </button>
-//           ),
-//           id: "selects",
-//           sortable: false,
-//         },
-//         {
-//           Header: "First Name",
-//           accessor: "firstName",
-//         },
-//         {
-//           Header: "Age",
-//           accessor: "age",
-//         },
-//         {
-//           Header: "Status",
-//           accessor: "status",
-//         },
+//     renderCount.current++
+//     return (
+//         <div>
+//             Render: {renderCount.current}
+//             <ReactTable
+//                 getTrProps={getTrProps}
+//                 data={data}
+//                 columns={[
+//                     {
+//                         Header: (
+//                             <button onClick={onClickSelectAll}>
+//                                 SELECT ALL
+//                             </button>
+//                         ),
+//                         accessor: (row) => (
+//                             <button
+//                                 onClick={() =>
+//                                     selectedRows.includes(row.id)
+//                                         ? handleDeselectRow(row.id)
+//                                         : handleSelectRow(row.id)
+//                                 }
+//                             >
+//                                 SELECT ROW
+//                             </button>
+//                         ),
+//                         id: 'selects',
+//                         sortable: false,
+//                     },
+//                     {
+//                         Header: 'First Name',
+//                         accessor: 'firstName',
+//                     },
+//                     {
+//                         Header: 'Age',
+//                         accessor: 'age',
+//                     },
+//                     {
+//                         Header: 'Status',
+//                         accessor: 'status',
+//                     },
 
-//         {
-//           Header: "Visits",
-//           accessor: "visits",
-//         },
-//       ]}
-//       defaultPageSize={500}
-//     />
-//   );
-// };
+//                     {
+//                         Header: 'Visits',
+//                         accessor: 'visits',
+//                     },
+//                 ]}
+//                 defaultPageSize={500}
+//             />
+//         </div>
+//     )
+// }
 
-export default Table;
+export default Table
